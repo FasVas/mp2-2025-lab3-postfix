@@ -1,9 +1,160 @@
-// объявление и реализация шаблонного стека
-// стек поддерживает операции: 
-// - вставка элемента, 
-// - извлечение элемента, 
-// - просмотр верхнего элемента (без удаления)
-// - проверка на пустоту, 
-// - получение количества элементов в стеке
-// - очистка стека
-// при вставке в полный стек должна перевыделяться память
+// РѕР±СЉСЏРІР»РµРЅРёРµ Рё СЂРµР°Р»РёР·Р°С†РёСЏ С€Р°Р±Р»РѕРЅРЅРѕРіРѕ СЃС‚РµРєР°
+// СЃС‚РµРє РїРѕРґРґРµСЂР¶РёРІР°РµС‚ РѕРїРµСЂР°С†РёРё: 
+// - РІСЃС‚Р°РІРєР° СЌР»РµРјРµРЅС‚Р°, +
+// - РёР·РІР»РµС‡РµРЅРёРµ СЌР»РµРјРµРЅС‚Р°, +
+// - РїСЂРѕСЃРјРѕС‚СЂ РІРµСЂС…РЅРµРіРѕ СЌР»РµРјРµРЅС‚Р° (Р±РµР· СѓРґР°Р»РµРЅРёСЏ) +
+// - РїСЂРѕРІРµСЂРєР° РЅР° РїСѓСЃС‚РѕС‚Сѓ, +
+// - РїРѕР»СѓС‡РµРЅРёРµ РєРѕР»РёС‡РµСЃС‚РІР° СЌР»РµРјРµРЅС‚РѕРІ РІ СЃС‚РµРєРµ +
+// - РѕС‡РёСЃС‚РєР° СЃС‚РµРєР° +
+// РїСЂРё РІСЃС‚Р°РІРєРµ РІ РїРѕР»РЅС‹Р№ СЃС‚РµРє РґРѕР»Р¶РЅР° РїРµСЂРµРІС‹РґРµР»СЏС‚СЊСЃСЏ РїР°РјСЏС‚СЊ
+
+#define FAST_SIZE // Р•СЃР»Рё Р·Р°РґРµС„Р°Р№РЅРµРЅРѕ, СЂР°Р·РјРµСЂ СЂР°СЃСЃС‡РёС‚С‹РІР°РµС‚СЃСЏ Р·Р°СЂР°РЅРµРµ
+
+template<typename T>
+class TStack 
+{
+
+public:
+	TStack() : highest(nullptr) 
+#ifdef FAST_SIZE
+		, size(0)
+#endif	
+	{} 
+
+	// РџСЂР°РІРёР»Рѕ С‚СЂС‘С… ---------------------------------------------------
+	
+	~TStack()
+	{
+		trash();
+	}
+
+	TStack(const TStack& other) : highest(nullptr)
+	{
+		if (!other.cat())
+		{
+			TStack<T> vrem;
+			plate* taken_plate = other.highest;
+			while (taken_plate != nullptr)
+			{
+				vrem.add(taken_plate->data);
+				taken_plate = taken_plate->lower;
+			}
+			while (!vrem.cat())
+			{
+				add(vrem.steal());
+			}
+		}
+	}
+
+	TStack& operator=(const TStack& other)
+	{
+		if (this != &other)
+		{
+			trash();
+			if (!other.cat())
+			{
+				TStack<T> vrem;
+				plate* taken_plate = other.highest;
+				while (taken_plate != nullptr)
+				{
+					vrem.add(taken_plate->data);
+					taken_plate = taken_plate->lower;
+				}
+				while (!vrem.cat())
+				{
+					add(vrem.steal());
+				}
+			}
+		}
+	}
+
+	//-----------------------------------------------------------------
+
+
+	void add(const T& x) // Р”РѕР±Р°РІРёС‚СЊ СЌР»РµРјРµРЅС‚
+	{
+		plate* newest = new plate;
+		newest->data = x;
+		newest->lower = highest;
+		highest = newest;
+#ifdef FAST_SIZE
+		size++;
+#endif
+	};
+	
+	bool cat() const // РџСЂРѕРІРµСЂРєР° РЅР° РїСѓСЃС‚РѕС‚Сѓ
+	{
+		return highest == nullptr;
+	};
+
+	const T& nice() const// РџРѕРіР»СЏРґРµС‚СЊ, С‡С‚Рѕ СЃРІРµСЂС…Сѓ
+	{
+		if (cat())
+		{
+			throw std::runtime_error("Ctek nyct");
+		}
+		return highest->data;
+	};
+
+	T steal() // CРїРµСЂРµСЃС‚СЊ СЌР»РµРјРµРЅС‚ РёР· СЃС‚РµРєР°
+	{
+		if (cat())
+		{
+			throw std::runtime_error("РЎС‚РµРє РїСѓСЃС‚РѕР№");
+		}
+		plate* taken_plate = highest;
+		T x = taken_plate->data;
+		highest = taken_plate->lower;
+		delete taken_plate;
+#ifdef FAST_SIZE
+		size--;
+#endif
+		return x;
+	};
+
+	unsigned int count() const // СЂР°Р·РјРµСЂ
+	{
+#ifndef FAST_SIZE
+		unsigned int counter = 0;
+		plate* taken_plate = highest;
+		while (taken_plate != nullptr)
+		{
+			counter++;
+			taken_plate = taken_plate->lower;
+		}
+		return counter;
+#endif
+
+#ifdef FAST_SIZE
+		return size;
+#endif
+	};
+
+	void trash() // Polnoye ochish'eniye steka
+	{
+		while (highest!= nullptr)
+		{
+			plate* taken_plate = highest;
+			highest = highest->lower;
+			delete taken_plate;
+		}
+#ifdef FAST_SIZE
+		size = 0;
+#endif
+	};
+
+protected:
+
+	struct plate
+	{
+		T data;
+		plate * lower;
+	};
+
+	plate * highest;
+#ifdef FAST_SIZE
+	unsigned int size;
+#endif 
+
+
+};
